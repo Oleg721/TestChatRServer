@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AuthenticationServer.API.Services.TokenValidators
+namespace BLL.TokenValidators
 {
     public class RefreshTokenValidator
     {

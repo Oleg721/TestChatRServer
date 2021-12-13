@@ -1,4 +1,4 @@
-using DAL;
+﻿using DAL;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -22,6 +22,11 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using BLL.TokenGenerators;
 using BLL.Authenticators;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Authorization;
+using BLL.TokenValidators;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace TestChatR
 {
@@ -39,19 +44,46 @@ namespace TestChatR
             AuthenticationConfiguration authenticationConfiguration = new AuthenticationConfiguration();
             Configuration.Bind("Authentication", authenticationConfiguration);
 
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(o =>
-            {
-                o.TokenValidationParameters = new TokenValidationParameters()
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
                 {
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(authenticationConfiguration.AccessTokenSecret)),
-                    ValidIssuer = authenticationConfiguration.Issuer,
-                    ValidAudience = authenticationConfiguration.Audience,
-                    ValidateIssuerSigningKey = true,
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ClockSkew = TimeSpan.Zero
-                };
-            });
+                    options.RequireHttpsMetadata = false;
+                    options.TokenValidationParameters = new TokenValidationParameters()
+                    {
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(authenticationConfiguration.AccessTokenSecret)),
+                        ValidIssuer = authenticationConfiguration.Issuer,
+                        ValidAudience = authenticationConfiguration.Audience,
+                        ValidateIssuerSigningKey = true,
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ClockSkew = TimeSpan.Zero
+                    };
+
+                    options.Events = new JwtBearerEvents()
+                    {
+                        OnMessageReceived = context =>
+                        {
+                            var accessToken = context.Request.Query["access_token"];
+                            Console.WriteLine("JWT!!!");
+                            //// если запрос направлен хабу
+                            //var path = context.HttpContext.Request.Path;
+                            //if (!string.IsNullOrEmpty(accessToken) &&
+                            //    (path.StartsWithSegments("/chat")))
+                            //{
+                            //    // получаем токен из строки запроса
+                            //    context.Token = accessToken;
+                            //}
+                            return Task.CompletedTask;
+                        }
+                        //OnChallenge = c =>
+                        //{
+                        //    c.HandleResponse();
+                        //    return Task.CompletedTask;
+                        //}
+                    };
+
+
+                });
 
             services.AddSignalR(hubOptions =>
             {
@@ -65,6 +97,8 @@ namespace TestChatR
             services.AddScoped<AccessTokenGenerator>();
             services.AddSingleton<RefreshTokenGenerator>();
             services.AddSingleton<TokenGenerator>();
+            services.AddScoped<RefreshTokenRepository>();
+            services.AddSingleton<RefreshTokenValidator>();
             services.AddIdentity<User, IdentityRole<int>>(o =>
             {
                 o.Password.RequireDigit = false;
@@ -75,10 +109,11 @@ namespace TestChatR
 
             services.AddAutoMapper(new[] { typeof(MapperVM), typeof(MapperDAL) });
             services.AddScoped<DbContext, ChatContext>();
+            //services.AddScoped<IdentityDbContext<User, IdentityRole<int>, int>, ChatContext>();
             services.AddScoped<IMessageRepository, MessageRepository>();
             services.AddScoped<IMessageService, MessageService>();
             services.AddScoped<IAuthentificationService, AuthentificationService>();
-            services.AddMvc();
+            services.AddControllers();
 
             services.AddSwaggerGen(c =>
             {

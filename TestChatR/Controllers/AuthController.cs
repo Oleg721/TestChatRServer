@@ -8,28 +8,40 @@ using Microsoft.AspNetCore.Mvc;
 using Models.Requests;
 using Models.Responses;
 using System.Threading.Tasks;
+using BLL.TokenValidators;
+using Microsoft.EntityFrameworkCore;
+using DAL;
+using System.Linq;
+using DTO;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace TestChatR.Controllers
 {
     [ApiController]
+    [Authorize(AuthenticationSchemes = "Bearer")]
     public class AuthController : ControllerBase
     {
         private IMapper _mapper;
-        private UserManager<User> _userManager;
         private SignInManager<User> _signInManager;
+        private RefreshTokenValidator _refreshTokenValidator;
         private IAuthentificationService _authentificationService;
+
+        private DbContext _context;
         public AuthController(
             IMapper mapper,
-            UserManager<User> userManager,
             SignInManager<User> signInManager,
-            IAuthentificationService authentificationService)
+            IAuthentificationService authentificationService,
+            RefreshTokenValidator refreshTokenValidator,
+            DbContext context)
         {
             _mapper = mapper;
-            _userManager = userManager;
             _signInManager = signInManager;
             _authentificationService = authentificationService;
+            _refreshTokenValidator = refreshTokenValidator;
+            _context = context;
         }
 
+        [AllowAnonymous]
         [HttpPost("register")]
         public async Task<ActionResult<AuthenticatedUserResponse>> Registration(RegisterRequest registerRequest)
         {
@@ -39,10 +51,13 @@ namespace TestChatR.Controllers
             {
                 return BadRequest(registerResult.Error);
             }
-
-            return Ok("its Ok");
+            var loginDto = _mapper.Map<RegisterRequest, LoginDto>(registerRequest);
+            var result = await _authentificationService.LoginAsinc(loginDto);
+            var authenticatedUserDto = _mapper.Map<AuthenticatedUserDto, AuthenticatedUserResponse>(result.Payload);
+            return Ok(authenticatedUserDto);
         }
 
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<ActionResult<AuthenticatedUserResponse>> Login(LoginRequest loginRequest)
         {
@@ -56,7 +71,6 @@ namespace TestChatR.Controllers
             return Ok(authenticatedUserDto);
         }
 
-        [Authorize]
         [HttpPost("logout")]
         public async Task<ActionResult<string>> LogOut()
         {
@@ -66,7 +80,20 @@ namespace TestChatR.Controllers
             return Ok("SignOut");
         }
 
-        [Authorize(Roles = "admin")]
+        [AllowAnonymous]
+        [HttpPost("refresh")]
+        public async Task<IActionResult> Refresh(RefreshRequest refreshRequest)
+        {
+            var authenticatedUserDto = await _authentificationService.Refresh(refreshRequest.RefreshToken);
+            if(authenticatedUserDto == null)
+            {
+                return BadRequest("not result");
+            }
+
+            return Ok(authenticatedUserDto);
+        }
+
+            [Authorize(Roles = "admin")]
         [HttpPost("admintest")]
         public async Task<ActionResult<string>> AdminTest(string text)
         {
@@ -79,21 +106,20 @@ namespace TestChatR.Controllers
         {
             return Ok($"USER_TEST======={text}");
         }
-
-        [Authorize(Roles = "user")]
-        [HttpPost("test")]
+ 
+        [HttpPost]
+        [Route("test")]
         public async Task<ActionResult<string>> Test(string text)
         {
-            var user = await _userManager.FindByNameAsync(text);
-            if (user == null)
-            {
-                return BadRequest("Login is wrong");
-            }
-            var i = await _userManager.CreateSecurityTokenAsync(user);
-            var i2 =await _userManager.GetAuthenticatorKeyAsync(user);
-            var i3 =await _userManager.GetClaimsAsync(user);
-
             return Ok($"TEST======={text}");
+        }
+
+        [AllowAnonymous]
+        [HttpPost("t")]
+        public async Task<ActionResult<string>> T(string text)
+        {
+
+            return Ok($"T======={text}");
         }
     }
 

@@ -6,6 +6,7 @@ using Contracts.Authentification;
 using DAL.Models;
 using DTO.Authentications;
 using Microsoft.AspNetCore.Identity;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -90,11 +91,10 @@ namespace BLL.Authenticators
             await _signInManager.SignOutAsync();
         }
 
-        public Task<AuthenticatedUserDto> Refresh(string refreshToken)
+        public async Task<AuthenticatedUserDto> Refresh(string refreshToken)
         {
-            var i = _refreshTokenGenerator.GenerateToken();
-
-            return null;
+            var i = await _authenticator.Refresh(refreshToken);
+            return i;
         }
 
     }

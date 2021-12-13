@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using CoreLib.Requests;
 using DAL.Models;
 using DTO;
 using DTO.Authentications;
@@ -23,6 +22,7 @@ namespace TestChatR.Models
             cfg.CreateMap<RegisterRequest, RegisterDto>().ReverseMap();
             cfg.CreateMap<User, UserVM>().ReverseMap();
             cfg.CreateMap<LoginRequest, LoginDto>().ReverseMap();
+            cfg.CreateMap<RegisterRequest, LoginDto>().ReverseMap();
             cfg.CreateMap<AuthenticatedUserDto, AuthenticatedUserResponse>().ReverseMap();
         }
     }
