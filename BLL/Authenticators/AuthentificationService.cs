@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using BLL.TokenGenerators;
+using BLL.Authenticators.TokenGenerators;
 using BLL.Utils;
 using Contracts;
 using Contracts.Authentification;
@@ -20,23 +20,24 @@ namespace BLL.Authenticators
         private RoleManager<IdentityRole<int>> _roleManager;
         private AccessTokenGenerator _accessTokenGenerator;
         private RefreshTokenGenerator _refreshTokenGenerator;
-        private Authenticator _authenticator;
+        private IRefreshTokenBase<RefreshTokenDto> _refreshTokenRepository;
+
         public AuthentificationService(
             IMapper mapper,
             UserManager<User> userManager,
             RoleManager<IdentityRole<int>> roleManager,
             SignInManager<User> signInManager,
-            Authenticator authenticator,
             AccessTokenGenerator accessTokenGenerator,
-            RefreshTokenGenerator refreshTokenGenerator)
+            RefreshTokenGenerator refreshTokenGenerator,
+            IRefreshTokenBase<RefreshTokenDto> refreshTokenRepository)
         {
             _mapper = mapper;
             _userManager = userManager;
-            _authenticator = authenticator;
             _signInManager = signInManager;
             _roleManager = roleManager;
             _accessTokenGenerator = accessTokenGenerator;
             _refreshTokenGenerator = refreshTokenGenerator;
+            _refreshTokenRepository = refreshTokenRepository;
         }
         public async Task<IAuthentificationResult<bool>> RegistrationAsync(RegisterDto registerDto)
         {
@@ -81,7 +82,7 @@ namespace BLL.Authenticators
                 return AuthentificationResult<AuthenticatedUserDto>.Failed("Login is wrong");
             }
 
-            var authenticatedUserDto = await _authenticator.Authenticate(user);
+            var authenticatedUserDto = await Authenticate(user);
 
             return AuthentificationResult<AuthenticatedUserDto>.Success(authenticatedUserDto);
         }
@@ -91,10 +92,66 @@ namespace BLL.Authenticators
             await _signInManager.SignOutAsync();
         }
 
+        public async Task<AuthenticatedUserDto> Authenticate(IdentityUser<int> user)
+        {
+            var accessTokenDto = await _accessTokenGenerator.GenerateToken(user as User);
+            string refreshToken = _refreshTokenGenerator.GenerateToken();
+
+            var refreshTokenDto = new RefreshTokenDto()
+            {
+                UserId = user.Id,
+                Token = refreshToken
+            };
+            var result = await CreateAsync(refreshTokenDto);
+            if (!result)
+            {
+                return null;
+            }
+
+            return new AuthenticatedUserDto()
+            {
+                AccessToken = accessTokenDto.Value,
+                AccessTokenExpirationTime = accessTokenDto.ExpirationTime,
+                RefreshToken = refreshToken
+            };
+        }
+
         public async Task<AuthenticatedUserDto> Refresh(string refreshToken)
         {
-            var i = await _authenticator.Refresh(refreshToken);
-            return i;
+            var refreshTokenDto = await _refreshTokenRepository.GetByTokenAsync(refreshToken);
+            if (refreshTokenDto == null)
+            {
+                return null;
+            }
+
+            var user = await _userManager.FindByIdAsync(refreshTokenDto.UserId.ToString());
+            if (user == null)
+            {
+                return null;
+            }
+
+            var isDeleted = await _refreshTokenRepository.DeleteAsync(refreshTokenDto);
+            if (!isDeleted)
+            {
+                return null;
+            }
+
+            return await Authenticate(user); 
+        }
+
+        public Task<bool> CreateAsync(RefreshTokenDto refreshToken)
+        {
+            return _refreshTokenRepository.CreateAsync(refreshToken);
+        }
+
+        public Task<bool> DeleteAsync(RefreshTokenDto refreshToken)
+        {
+            return _refreshTokenRepository.DeleteAsync(refreshToken);
+        }
+
+        public Task<RefreshTokenDto> GetByTokenAsync(string token)
+        {
+            return _refreshTokenRepository.GetByTokenAsync(token);
         }
 
     }

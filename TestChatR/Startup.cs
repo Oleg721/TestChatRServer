@@ -20,13 +20,11 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using DTO;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using BLL.TokenGenerators;
+using BLL.Authenticators.TokenGenerators;
 using BLL.Authenticators;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc.Authorization;
-using BLL.TokenValidators;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using BLL.Authenticators.TokenValidators;
+using DTO.Authentications;
 
 namespace TestChatR
 {
@@ -93,11 +91,11 @@ namespace TestChatR
             services.AddSingleton(authenticationConfiguration);
             services.AddDbContext<ChatContext>(options =>
                 options.UseSqlServer(connectionString));
-            services.AddScoped<Authenticator>();
+           // services.AddScoped<Authenticator>();
             services.AddScoped<AccessTokenGenerator>();
             services.AddSingleton<RefreshTokenGenerator>();
             services.AddSingleton<TokenGenerator>();
-            services.AddScoped<RefreshTokenRepository>();
+            services.AddScoped<IRefreshTokenBase<RefreshTokenDto>, RefreshTokenRepository>();
             services.AddSingleton<RefreshTokenValidator>();
             services.AddIdentity<User, IdentityRole<int>>(o =>
             {

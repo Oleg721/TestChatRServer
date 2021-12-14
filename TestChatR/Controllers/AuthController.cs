@@ -8,12 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Models.Requests;
 using Models.Responses;
 using System.Threading.Tasks;
-using BLL.TokenValidators;
 using Microsoft.EntityFrameworkCore;
-using DAL;
-using System.Linq;
-using DTO;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace TestChatR.Controllers
 {
@@ -23,21 +18,19 @@ namespace TestChatR.Controllers
     {
         private IMapper _mapper;
         private SignInManager<User> _signInManager;
-        private RefreshTokenValidator _refreshTokenValidator;
         private IAuthentificationService _authentificationService;
+
 
         private DbContext _context;
         public AuthController(
             IMapper mapper,
             SignInManager<User> signInManager,
             IAuthentificationService authentificationService,
-            RefreshTokenValidator refreshTokenValidator,
             DbContext context)
         {
             _mapper = mapper;
             _signInManager = signInManager;
             _authentificationService = authentificationService;
-            _refreshTokenValidator = refreshTokenValidator;
             _context = context;
         }
 
@@ -93,6 +86,7 @@ namespace TestChatR.Controllers
             return Ok(authenticatedUserDto);
         }
 
+        ///////////////////////////////////////////////////////////////////////////////////
             [Authorize(Roles = "admin")]
         [HttpPost("admintest")]
         public async Task<ActionResult<string>> AdminTest(string text)

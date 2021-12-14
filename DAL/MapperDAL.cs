@@ -12,7 +12,6 @@ namespace DAL
         {
             MapConfig(this);
         }
-
         private static void MapConfig(IProfileExpression cfg)
         {
             cfg.CreateMap<User, UserDto>().ReverseMap();

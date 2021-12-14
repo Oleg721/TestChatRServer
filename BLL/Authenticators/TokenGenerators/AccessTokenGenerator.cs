@@ -1,17 +1,15 @@
-﻿using DAL.Models;
+﻿using BLL.Authenticators.TokenGenerators;
+using DAL.Models;
 using DTO;
 using DTO.Authentications;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
-using System.Text;
 using System.Threading.Tasks;
 
-namespace BLL.TokenGenerators
+namespace BLL.Authenticators.TokenGenerators
 {
     public class AccessTokenGenerator
     {
@@ -36,8 +34,6 @@ namespace BLL.TokenGenerators
                 new Claim("id", user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.UserName),
             };
-
-            var userRolesClame2 = await _userManager.GetRolesAsync(user);
 
             var userRolesClame = (await _userManager.GetRolesAsync(user))
                 .Select(role => new Claim(ClaimTypes.Role, role));

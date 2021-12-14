@@ -5,9 +5,11 @@ using BLL.Contracts;
 using TestChatR.Models;
 using AutoMapper;
 using DTO;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SignalRApp
 {
+    [Authorize(AuthenticationSchemes = "Bearer")]
     public class ChatHub : Hub
     {
         private IMessageService _messageService;
