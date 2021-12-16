@@ -9,6 +9,7 @@ using Models.Requests;
 using Models.Responses;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace TestChatR.Controllers
 {
@@ -39,7 +40,7 @@ namespace TestChatR.Controllers
         public async Task<ActionResult<AuthenticatedUserResponse>> Registration(RegisterRequest registerRequest)
         {
             var registrationDto = _mapper.Map<RegisterRequest, RegisterDto>(registerRequest);
-            var registerResult =  await _authentificationService.RegistrationAsync(registrationDto);
+            var registerResult = await _authentificationService.RegistrationAsync(registrationDto);
             if (!registerResult.Succeeded)
             {
                 return BadRequest(registerResult.Error);
@@ -78,7 +79,7 @@ namespace TestChatR.Controllers
         public async Task<IActionResult> Refresh(RefreshRequest refreshRequest)
         {
             var authenticatedUserDto = await _authentificationService.Refresh(refreshRequest.RefreshToken);
-            if(authenticatedUserDto == null)
+            if (authenticatedUserDto == null)
             {
                 return BadRequest("not result");
             }
@@ -87,7 +88,7 @@ namespace TestChatR.Controllers
         }
 
         ///////////////////////////////////////////////////////////////////////////////////
-            [Authorize(Roles = "admin")]
+        [Authorize(Roles = "admin")]
         [HttpPost("admintest")]
         public async Task<ActionResult<string>> AdminTest(string text)
         {
@@ -100,7 +101,7 @@ namespace TestChatR.Controllers
         {
             return Ok($"USER_TEST======={text}");
         }
- 
+
         [HttpPost]
         [Route("test")]
         public async Task<ActionResult<string>> Test(string text)
@@ -114,6 +115,33 @@ namespace TestChatR.Controllers
         {
 
             return Ok($"T======={text}");
+        }
+
+        [AllowAnonymous]
+        [HttpGet(".well-known/openid-configuration")]
+        public async Task<ActionResult<string>> OpenIdConfiguration()
+        {
+            var url = Environment.GetEnvironmentVariable("ASPNETCORE_URLS").Split(";")[0];
+
+            var openIdConf = new
+            {
+                authorization_endpoint = $"{url}/authorize",
+                issuer = url,
+                token_endpoint = $"{url}/connect/token",
+                token_endpoint_auth_types_supported = new string[] { "client_secret_basic", "private_key_jwt" },
+                userinfo_endpoint = $"{url}/connect/user",
+                check_id_endpoint = $"{url}/connect/check_id",
+                registration_endpoint = $"{url}/connect/register"
+            };
+
+            return Ok(openIdConf);
+        }
+
+        [AllowAnonymous]
+        [HttpGet("authorize")]
+        public async Task<ActionResult<string>> Authorize()
+        {
+            return Ok();
         }
     }
 

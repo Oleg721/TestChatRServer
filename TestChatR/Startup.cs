@@ -87,7 +87,7 @@ namespace TestChatR
             {
                 hubOptions.ClientTimeoutInterval = TimeSpan.FromMinutes(1);
             });
-
+            services.AddCors();
             services.AddSingleton(authenticationConfiguration);
             services.AddDbContext<ChatContext>(options =>
                 options.UseSqlServer(connectionString));
@@ -128,7 +128,7 @@ namespace TestChatR
             }
             app.UseStaticFiles();
             app.UseRouting();
-
+            app.UseCors(e => e.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
             app.UseAuthentication();
             app.UseAuthorization();
 
